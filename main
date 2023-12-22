@@ -1,0 +1,465 @@
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Scanner;
+
+public class Summative {
+    public static void main(String[] args) {
+        List<Project> projectList = new ArrayList<>();
+        List<Employee> employeeList = new ArrayList<>();
+        Map<Integer, List<TeamMember>> projectEmployees = new HashMap<>();
+        int projectIdCounter = 101;
+        int employeeIdCounter = 50001;
+
+        Scanner scanner = new Scanner(System.in);
+
+        while (true) {
+            System.out.println("Choose an option:");
+            System.out.println("1. Add Project");
+            System.out.println("2. Add Employee");
+            System.out.println("3. Assign Employee to Project");
+            System.out.println("4. Display Projects and Team Members");
+            System.out.println("5. Display Employees for a Project");
+            System.out.println("6. Display Projects for an Employee");
+            System.out.println("7. Update Project Details");
+            System.out.println("8. Update Employee Assignments");
+            System.out.println("9. Delete Project");
+            System.out.println("10. Exit");
+
+            int choice = scanner.nextInt();
+            scanner.nextLine();
+            
+            if (choice == 1) {
+                // Add Project
+                Project project = addProject(scanner, projectIdCounter);
+                projectList.add(project);
+                projectIdCounter++;
+                System.out.println("Project added successfully.");
+            } else if (choice == 2) {
+                // Add Employee
+                Employee employee = addEmployee(scanner, employeeIdCounter);
+                employeeList.add(employee);
+                employeeIdCounter++;
+                System.out.println("Employee added successfully.");
+            } else if (choice == 3) {
+                // Assign Employee to Project
+                assignEmployeeToProject(scanner, projectEmployees, employeeList, projectList);
+            } else if (choice == 4) {
+                // Display Projects and Team Members
+                displayProjectsAndTeamMembers(projectList, projectEmployees, employeeList);
+            } else if (choice == 5) {
+                // Display Employees for a Project
+                displayEmployeesForProject(scanner, projectEmployees, employeeList);
+            } else if (choice == 6) {
+                // Display Projects for an Employee
+                displayProjectsForEmployee(scanner, projectEmployees, projectList);
+            } else if (choice == 7) {
+                // Update Project Details
+                updateProjectDetails(scanner, projectList);
+            } else if (choice == 8) {
+                // Update Employee Assignments
+                updateEmployeeAssignments(scanner, projectEmployees, employeeList);
+            } else if (choice == 9) {
+                // Delete Project
+                deleteProject(scanner, projectList, projectEmployees);
+            } else if (choice == 10) {
+                // Exit the program
+                break;
+            }
+        }
+    }
+    
+    public static boolean isValidDate(String date) {
+    	if (date.length() != 10) {
+            return false; // Date string must be exactly 10 characters long
+        }
+
+        String dayStr = date.substring(0, 2);
+        String monthStr = date.substring(3, 5);
+        String yearStr = date.substring(6);
+
+        if (dayStr.length() != 2 || monthStr.length() != 2 || yearStr.length() != 4) {
+            return false; // Day, month, and year components must have the correct length
+        }
+
+        int day = Integer.parseInt(dayStr);
+        int month = Integer.parseInt(monthStr);
+        int year = Integer.parseInt(yearStr);
+
+        if (day < 1 || day > 31 || month < 1 || month > 12 || year < 1) {
+            return false; // Values must be within valid day, month, and year ranges
+        }
+
+        if ((month == 4 || month == 6 || month == 9 || month == 11) && day > 30) {
+            return false; // 30 days max for April, June, September, November
+        }
+
+        if (month == 2) {
+            if ((year % 4 == 0 && year % 100 != 0) || year % 400 == 0) {
+                if (day > 29) {
+                    return false; // February can have at most 29 days in a leap year
+                }
+            } else {
+                if (day > 28) {
+                    return false; // February has 28 days in a non-leap year
+                }
+            }
+        }
+
+        return true;
+    }
+
+    private static Project addProject(Scanner scanner, int projectIdCounter) {
+        System.out.print("Enter the Project name: ");
+        String projectName = scanner.nextLine();
+        System.out.print("Enter the Project description: ");
+        String projectDescription = scanner.nextLine();
+        String startDate = "";
+        boolean isValidStartDate = false;
+        while (!isValidStartDate) {
+            try {
+                System.out.print("Enter the start date (dd/mm/yyyy): ");
+                startDate = scanner.nextLine();
+                if (isValidDate(startDate)) {
+                	isValidStartDate = true;// Set the flag to exit the loop
+                } else {
+                    System.out.println("Invalid date format. Please enter a valid date (dd/mm/yyyy).");
+                }
+            } catch (Exception e) {
+                System.out.println("An error occurred while reading the start date: " + e.getMessage());
+            }
+        }
+        String endDate = "";
+        boolean isValidEndDate = false;
+        while (!isValidEndDate) {
+            try {
+                System.out.print("Enter the end date (dd/mm/yyyy): ");
+                endDate = scanner.nextLine();
+                if (isValidDate(endDate)) {
+                	isValidEndDate = true;// Set the flag to exit the loop
+                } else {
+                    System.out.println("Invalid date format. Please enter a valid date (dd/mm/yyyy).");
+                }
+            } catch (Exception e) {
+                System.out.println("An error occurred while reading the start date: " + e.getMessage());
+            }
+        }
+        System.out.println("Project ID: " + projectIdCounter);
+        projectIdCounter = projectIdCounter + 1;
+        return new Project(projectIdCounter - 1, projectName, projectDescription, startDate, endDate);
+    }
+
+    private static Employee addEmployee(Scanner scanner, int employeeIdCounter) {
+        System.out.print("Enter the first name: ");
+        String firstName = scanner.nextLine();
+        System.out.print("Enter the last name: ");
+        String lastName = scanner.nextLine();
+        System.out.print("Enter the department: ");
+        String department = scanner.nextLine();
+        System.out.print("Enter the role: ");
+        String role = scanner.nextLine();
+        System.out.println("Employee ID: "+employeeIdCounter);
+        employeeIdCounter = employeeIdCounter + 1;
+        return new Employee(employeeIdCounter-1, firstName, lastName, department, role);
+    }
+
+    private static void assignEmployeeToProject(Scanner scanner, Map<Integer, List<TeamMember>> projectEmployees, List<Employee> employeeList, List<Project> projectList) {
+        System.out.print("Enter Employee ID: ");
+        int employeeId = scanner.nextInt();
+        if (isValidEmployeeId(employeeId, employeeList)) {
+            System.out.print("Enter Project ID: ");
+            int projectId = scanner.nextInt();
+            if (isValidProjectId(projectId, projectList)) {
+                if (!projectEmployees.containsKey(projectId)) {
+                    projectEmployees.put(projectId, new ArrayList<>());
+                }
+                scanner.nextLine();
+                System.out.print("Enter the role: ");
+                String role = scanner.nextLine();
+                projectEmployees.get(projectId).add(new TeamMember(employeeId, role));
+                System.out.println("Employee assigned to the project.");
+            } else {
+                System.out.println("Invalid Project ID. Please enter a valid Project ID.");
+            }
+        } else {
+            System.out.println("Invalid Employee ID. Please enter a valid Employee ID.");
+        }
+    }
+
+    private static void displayProjectsAndTeamMembers(List<Project> projectList, Map<Integer, List<TeamMember>> projectEmployees, List<Employee> employeeList) {
+        if (projectList.isEmpty()) {
+            System.out.println("No projects to display.");
+            return;  // Exit the method early as there are no projects to display
+        }
+
+        System.out.println("List of all projects with assigned team members and roles:");
+        for (Project project : projectList) {
+            System.out.println("Project ID: " + project.getProjectId() + " - Name: " + project.getProjectName() + " - Description: " + project.getProjectDescription());
+            if (projectEmployees.containsKey(project.getProjectId())) {
+                System.out.println(" - Team members and roles:");
+                for (TeamMember teamMember : projectEmployees.get(project.getProjectId())) {
+                    Employee employee = getEmployeeById(teamMember.getEmployeeId(), employeeList);
+                    if (employee != null) {
+                        System.out.println("   - Employee ID: " + employee.getEmployeeId() + " - Name: " + employee.getFullName() + " - Role: " + teamMember.getRole());
+                    }
+                }
+            }
+        }
+    }
+
+    private static void displayEmployeesForProject(Scanner scanner, Map<Integer, List<TeamMember>> projectEmployees, List<Employee> employeeList) {
+        System.out.print("Enter Project ID: ");
+        int projectId = scanner.nextInt();
+        if (projectEmployees.containsKey(projectId)) {
+            System.out.println("Employees assigned to Project ID " + projectId + ":");
+            for (TeamMember teamMember : projectEmployees.get(projectId)) {
+                Employee employee = getEmployeeById(teamMember.getEmployeeId(), employeeList);
+                if (employee != null) {
+                    System.out.println(" - Employee ID: " + employee.getEmployeeId() + " - Name: " + employee.getFullName() + " - Role: " + teamMember.getRole());
+                }
+            }
+        } else {
+            System.out.println("No employees assigned to this project.");
+        }
+    }
+
+    private static void displayProjectsForEmployee(Scanner scanner, Map<Integer, List<TeamMember>> projectEmployees, List<Project> projectList) {
+        System.out.print("Enter Employee ID: ");
+        int employeeId = scanner.nextInt();
+        System.out.println("Projects assigned to Employee ID " + employeeId + ":");
+        for (Project project : projectList) {
+            if (projectEmployees.containsKey(project.getProjectId())) {
+                for (TeamMember teamMember : projectEmployees.get(project.getProjectId())) {
+                    if (teamMember.getEmployeeId() == employeeId) {
+                        System.out.println(" - Project ID: " + project.getProjectId() + " - Name: " + project.getProjectName() + " - Role: " + teamMember.getRole());
+                    }
+                }
+            }
+        }
+    }
+
+    private static void updateProjectDetails(Scanner scanner, List<Project> projectList) {
+        System.out.print("Enter Project ID: ");
+        int projectId = scanner.nextInt();
+        Project project = getProjectById(projectId, projectList);
+        if (project != null) {
+            System.out.print("Enter new Project name: ");
+            String projectName = scanner.next();
+            System.out.print("Enter new Project description: ");
+            String projectDescription = scanner.next();
+            System.out.print("Enter new start date (dd/mm/yyyy): ");
+            String startDate = scanner.next();
+            System.out.print("Enter new end date (dd/mm/yyyy): ");
+            String endDate = scanner.next();
+            project.setProjectName(projectName);
+            project.setProjectDescription(projectDescription);
+            project.setStartDate(startDate);
+            project.setEndDate(endDate);
+            System.out.println("Project details updated successfully.");
+        } else {
+            System.out.println("Invalid Project ID. Please enter a valid Project ID.");
+        }
+    }
+    
+    private static void updateEmployeeAssignments(Scanner scanner, Map<Integer, List<TeamMember>> projectEmployees, List<Employee> employeeList) {
+        System.out.print("Enter Project ID: ");
+        int projectId = scanner.nextInt();
+        if (projectEmployees.containsKey(projectId)) {
+            System.out.println("Current Employee Assignments for Project ID " + projectId + ":");
+            for (TeamMember teamMember : projectEmployees.get(projectId)) {
+                Employee employee = getEmployeeById(teamMember.getEmployeeId(), employeeList);
+                if (employee != null) {
+                    System.out.println(" - Employee ID: " + employee.getEmployeeId() + " - Name: " + employee.getFullName() + " - Role: " + teamMember.getRole());
+                }
+            }
+
+            System.out.print("Enter Employee ID to update assignment: ");
+            int employeeId = scanner.nextInt();
+
+            if (isValidEmployeeId(employeeId, employeeList)) {
+                scanner.nextLine(); // Consume the newline character
+
+                System.out.print("Enter the new role for Employee ID " + employeeId + ": ");
+                String newRole = scanner.nextLine();
+
+                for (TeamMember teamMember : projectEmployees.get(projectId)) {
+                    if (teamMember.getEmployeeId() == employeeId) {
+                        teamMember.setRole(newRole);
+                        System.out.println("Assignment updated successfully.");
+                        return;
+                    }
+                }
+                System.out.println("Employee is not assigned to this project.");
+            } else {
+                System.out.println("Invalid Employee ID. Please enter a valid Employee ID.");
+            }
+        } else {
+            System.out.println("No employees assigned to this project.");
+        }
+    }
+
+    private static void deleteProject(Scanner scanner, List<Project> projectList, Map<Integer, List<TeamMember>> projectEmployees) {
+        System.out.print("Enter Project ID: ");
+        int projectId = scanner.nextInt();
+        Project project = getProjectById(projectId, projectList);
+        if (project != null) {
+            projectList.remove(project);
+            projectEmployees.remove(projectId);
+            System.out.println("Project deleted successfully.");
+        } else {
+            System.out.println("Invalid Project ID. Please enter a valid Project ID.");
+        }
+    }
+
+    private static boolean isValidEmployeeId(int employeeId, List<Employee> employeeList) {
+        for (Employee employee : employeeList) {
+            if (employee.getEmployeeId() == employeeId) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean isValidProjectId(int projectId, List<Project> projectList) {
+        for (Project project : projectList) {
+            if (project.getProjectId() == projectId) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static Employee getEmployeeById(int employeeId, List<Employee> employeeList) {
+        for (Employee employee : employeeList) {
+            if (employee.getEmployeeId() == employeeId) {
+                return employee;
+            }
+        }
+        return null;
+    }
+
+    private static Project getProjectById(int projectId, List<Project> projectList) {
+        for (Project project : projectList) {
+            if (project.getProjectId() == projectId) {
+                return project;
+            }
+        }
+        return null;
+    }
+ 
+}
+
+class Project {
+    private int projectId;
+    private String projectName;
+    private String projectDescription;
+    private String startDate;
+    private String endDate;
+
+    public Project(int projectId, String projectName, String projectDescription, String startDate, String endDate) {
+        this.projectId = projectId;
+        this.projectName = projectName;
+        this.projectDescription = projectDescription;
+        this.startDate = startDate;
+        this.endDate = endDate;
+    }
+
+    public int getProjectId() {
+        return projectId;
+    }
+
+    public String getProjectName() {
+        return projectName;
+    }
+
+    public void setProjectName(String projectName) {
+        this.projectName = projectName;
+    }
+
+    public String getProjectDescription() {
+        return projectDescription;
+    }
+
+    public void setProjectDescription(String projectDescription) {
+        this.projectDescription = projectDescription;
+    }
+
+    public String getStartDate() {
+        return startDate;
+    }
+
+    public void setStartDate(String startDate) {
+        this.startDate = startDate;
+    }
+
+    public String getEndDate() {
+        return endDate;
+    }
+
+    public void setEndDate(String endDate) {
+        this.endDate = endDate;
+    }
+}
+
+class Employee {
+    private int employeeId;
+    private String firstName;
+    private String lastName;
+    private String department;
+    private String role;
+
+    public Employee(int employeeId, String firstName, String lastName, String department, String role) {
+        this.employeeId = employeeId;
+        this.firstName = firstName;
+        this.lastName = lastName;
+        this.department = department;
+        this.role = role;
+    }
+
+    public int getEmployeeId() {
+        return employeeId;
+    }
+
+    public String getFirstName() {
+        return firstName;
+    }
+
+    public String getLastName() {
+        return lastName;
+    }
+
+    public String getDepartment() {
+        return department;
+    }
+
+    public String getRole() {
+        return role;
+    }
+
+    public String getFullName() {
+        return firstName + " " + lastName;
+    }
+}
+
+class TeamMember {
+    private int employeeId;
+    private String role;
+
+    public TeamMember(int employeeId, String role) {
+        this.employeeId = employeeId;
+        this.role = role;
+    }
+
+    public void setRole(String role) {
+        this.role = role; 
+    }  
+
+	public int getEmployeeId() {
+        return employeeId;
+    }
+
+    public String getRole() {
+        return role;
+    }
+}
